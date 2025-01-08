@@ -34,7 +34,7 @@ const autoCheck = document.getElementById('autoCheck');
 
 let currentWordIndex = 0;
 let score = 0;
-let playCount = 0;
+let isPlaying = false;
 
 startButton.addEventListener('click', () => {
     startButton.style.display = 'none';
@@ -46,22 +46,49 @@ submitButton.addEventListener('click', checkAnswer);
 revealButton.addEventListener('click', revealAnswer);
 
 playButton.addEventListener('click', () => {
-    playCount++;
-    playWord(words[currentWordIndex].english, playCount > 1 ? 0.5 : 1);
+    if (!isPlaying) {
+        isPlaying = true;
+        playWord(words[currentWordIndex].english, 2);
+    }
 });
 
 function loadNewWord() {
     currentWordIndex = Math.floor(Math.random() * words.length);
-    playCount = 0;
     wordToWrite.innerText = "Listen and write the word";
-    playWord(words[currentWordIndex].english);
+    playWord(words[currentWordIndex].english, 2);
 }
 
-function playWord(word, rate = 1) {
-    const speech = new SpeechSynthesisUtterance(word);
-    speech.lang = 'en-US';
-    speech.rate = rate;
-    window.speechSynthesis.speak(speech);
+function playWord(word, rounds) {
+    let count = 0;
+
+    function playRound() {
+        if (count < rounds) {
+            const speech1 = new SpeechSynthesisUtterance(word);
+            speech1.lang = 'en-US';
+            speech1.rate = 1;
+
+            speech1.onend = () => {
+                setTimeout(() => {
+                    const speech2 = new SpeechSynthesisUtterance(word);
+                    speech2.lang = 'en-US';
+                    speech2.rate = 0.5;
+
+                    speech2.onend = () => {
+                        count++;
+                        if (count < rounds) {
+                            setTimeout(playRound, 5000);
+                        } else {
+                            isPlaying = false;
+                        }
+                    };
+                    window.speechSynthesis.speak(speech2);
+                }, 5000);
+            };
+            window.speechSynthesis.speak(speech1);
+        }
+    }
+
+    playRound();
 }
 
 function checkAnswer() {
